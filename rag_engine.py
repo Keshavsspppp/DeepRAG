@@ -273,3 +273,55 @@ def query_groq_llm(query, retrieved_chunks, api_key, model_name="llama3-8b-8192"
         
     except Exception as e:
         return f"❌ **Groq API Error**: {str(e)}\n\nPlease check your Groq API Key and internet connection."
+
+
+def rewrite_query_with_history(query, chat_history, api_key, model_name="llama3-8b-8192"):
+    """
+    Reformulates follow-up queries using conversation history to make them standalone for semantic search.
+    """
+    if not chat_history:
+        return query
+        
+    try:
+        # Format the recent history exchanges (last 4 exchanges to save context window tokens)
+        history_str = ""
+        for msg in chat_history[-6:]:
+            role = "User" if msg["role"] == "user" else "Assistant"
+            history_str += f"{role}: {msg['content']}\n"
+            
+        client = Groq(api_key=api_key)
+        
+        system_prompt = (
+            "You are a search query optimizer. Given a conversation history and a follow-up query, "
+            "reformulate the follow-up query into a single, standalone search query containing all necessary context.\n"
+            "Rules:\n"
+            "1. Do not answer the question. Just output the reformulated search query.\n"
+            "2. Ensure the query is keyword-rich and optimal for semantic database search.\n"
+            "3. If the query does not depend on prior history, output it exactly as-is.\n"
+            "4. Return ONLY the final query text, without markdown, formatting, or quotes."
+        )
+        
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"History:\n{history_str}\nFollow-up Query: {query}"}
+        ]
+        
+        response = client.chat.completions.create(
+            model=model_name,
+            messages=messages,
+            temperature=0.0,
+            max_tokens=128
+        )
+        
+        rewritten = response.choices[0].message.content.strip()
+        # Clean quotes if model added them
+        if rewritten.startswith('"') and rewritten.endswith('"'):
+            rewritten = rewritten[1:-1]
+        elif rewritten.startswith("'") and rewritten.endswith("'"):
+            rewritten = rewritten[1:-1]
+            
+        return rewritten
+    except Exception:
+        # Fallback to original query in case of API error
+        return query
+

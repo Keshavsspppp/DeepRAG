@@ -8,7 +8,8 @@ from rag_engine import (
     embed_chunks,
     CustomVectorStore,
     query_groq_llm,
-    get_embedding_model
+    get_embedding_model,
+    rewrite_query_with_history
 )
 
 # Load environment variables from .env file
@@ -271,7 +272,7 @@ else:
     selected_docs = []
 
 # TABS FOR INTERACTIVE USAGE
-tab_chat, tab_playground = st.tabs(["💬 Chat Assistant", "🔬 Vector Playground & DB Inspector"])
+tab_chat, tab_playground, tab_casestudy = st.tabs(["💬 Chat Assistant", "🔬 Vector Playground & DB Inspector", "📊 Chunking Case Study"])
 
 # TAB 1: CHAT ASSISTANT
 with tab_chat:
@@ -302,13 +303,26 @@ with tab_chat:
         with st.chat_message("user"):
             st.markdown(prompt)
             
-        # 1. Generate query embedding
+        # 1. Standalone Query Condensation (Memory Context)
+        search_query = prompt
+        if st.session_state.chat_history and api_key:
+            with st.spinner("Analyzing conversation memory..."):
+                search_query = rewrite_query_with_history(
+                    query=prompt,
+                    chat_history=st.session_state.chat_history,
+                    api_key=api_key,
+                    model_name=model_choice
+                )
+                if search_query != prompt:
+                    st.caption(f"🔍 *Standalone Contextual Search Query:* \"{search_query}\"")
+            
+        # 2. Generate query embedding
         if not st.session_state.embedding_model_loaded:
             with st.spinner("Loading embedding model..."):
                 get_embedding_model()
                 st.session_state.embedding_model_loaded = True
                 
-        query_vector = get_embedding_model().encode([prompt])[0]
+        query_vector = get_embedding_model().encode([search_query])[0]
         
         # 2. Similarity Search using Custom Vector Store
         results = st.session_state.vector_store.similarity_search(
@@ -480,3 +494,116 @@ with tab_playground:
             with st.expander(f"Chunk {idx+1} ({page_lbl} | Word Count: {len(chunk['text'].split())})"):
                 st.code(chunk["text"], language="text")
                 st.caption(f"Internal Chunk ID: {chunk['id']}")
+
+
+# TAB 3: CHUNKING CASE STUDY
+with tab_casestudy:
+    st.subheader("📊 Chunk Size Experimentation & Mini Case Study")
+    st.markdown("""
+    Choosing the right **chunk size** is one of the most critical decisions when building a RAG pipeline. 
+    Below is a comparison of common sizes and an **interactive simulator** to see how chunk size directly affects search precision.
+    """)
+    
+    # Static trade-off guide
+    c1, c2, c3 = st.columns(3)
+    with c1:
+        st.markdown("""
+        ### 🔹 200 Words (Small)
+        * **Best For**: Finding highly granular facts (dates, numbers, names).
+        * **Pros**: Low token cost, high search precision, fits more distinct blocks in LLM context.
+        * **Cons**: Fragmented thoughts, misses surrounding context, sentences may cut off mid-idea.
+        """)
+    with c2:
+        st.markdown("""
+        ### 🔸 500 Words (Medium)
+        * **Best For**: Standard business documents, policies, FAQs.
+        * **Pros**: Captures complete paragraphs, maintains logical flow, good balance of precision/context.
+        * **Cons**: Slightly higher token consumption, can pull in a small amount of unrelated text.
+        """)
+    with c3:
+        st.markdown("""
+        ### 🔺 1000 Words (Large)
+        * **Best For**: Complex legal guidelines, tutorials, narrative chapters.
+        * **Pros**: Complete context, high chance of capturing multi-step explanations.
+        * **Cons**: High token costs, dilutes semantic search scores (irrelevant text lowers the average similarity).
+        """)
+        
+    st.markdown("---")
+    st.subheader("🔬 Live Chunking Simulator")
+    st.caption("Paste a long document snippet below, enter a search term, and compare how 200, 500, and 1000-word chunk sizes perform.")
+
+    sample_long_text = (
+        "The startup ecosystem program provides grants to eligible founders. "
+        "Under Tier 1, early-stage startups can apply for a non-equity grant of up to $25,000 for product prototyping. "
+        "To qualify for Tier 1, the startup must be registered within the last 12 months, have a minimum viable product (MVP), and have less than $10,000 in monthly recurring revenue. "
+        "Under Tier 2, growth-stage companies can apply for co-investment grants up to $100,000 to scale operations. "
+        "The qualifications for Tier 2 require a registered company operating for at least 24 months, audited financial statements showing year-on-year revenue growth of at least 30%, and a team of at least 5 full-time employees. "
+        "Applications for both tiers open on August 1st and close on September 15th annually. All grant applications are reviewed by an independent investment committee consisting of venture capitalists and industry veterans. "
+        "Decisions are finalized within 45 days after the closing date, and successful applicants are notified via official email. "
+        "Grant disbursements are made in three tranches: 40% upon signing the agreement, 40% upon achieving the mid-term milestone, and 20% upon submission of the final project report."
+    )
+    
+    sim_text = st.text_area("Simulator Text:", value=sample_long_text, height=180)
+    sim_query = st.text_input("Simulator Search Query:", value="Tier 2 grant qualification requirements")
+    
+    if st.button("🧪 Run Semantic Comparison", use_container_width=True):
+        if not sim_text or not sim_query:
+            st.warning("Please enter both text and a query.")
+        else:
+            with st.spinner("Analyzing chunks and generating embeddings..."):
+                if not st.session_state.embedding_model_loaded:
+                    get_embedding_model()
+                    st.session_state.embedding_model_loaded = True
+                
+                # Dynamic sizes to compare
+                sizes = [200, 500, 1000]
+                results_comparison = []
+                
+                # Embed the query
+                q_emb = get_embedding_model().encode([sim_query])[0]
+                
+                for size in sizes:
+                    # Chunker (overlap 10% of size)
+                    overlap = int(size * 0.1)
+                    chunks = chunk_text(sim_text, chunk_size=size, overlap=overlap)
+                    
+                    if not chunks:
+                        continue
+                        
+                    # Embed chunks
+                    chunk_embs = get_embedding_model().encode(chunks, convert_to_numpy=True)
+                    
+                    # Calculate cosine similarity manually for this run
+                    q_norm = np.linalg.norm(q_emb)
+                    q_norm = q_norm if q_norm > 0 else 1e-10
+                    
+                    norms = np.linalg.norm(chunk_embs, axis=1)
+                    norms[norms == 0] = 1e-10
+                    
+                    dot_products = np.dot(chunk_embs, q_emb)
+                    similarities = dot_products / (norms * q_norm)
+                    
+                    best_idx = int(np.argmax(similarities))
+                    best_score = float(similarities[best_idx])
+                    best_chunk = chunks[best_idx]
+                    
+                    results_comparison.append({
+                        "size": size,
+                        "num_chunks": len(chunks),
+                        "best_score": best_score,
+                        "best_chunk": best_chunk
+                    })
+                
+                # Display side-by-side comparison columns
+                cols = st.columns(3)
+                for idx, res in enumerate(results_comparison):
+                    with cols[idx]:
+                        st.metric(
+                            label=f"📦 {res['size']}-Word Chunks",
+                            value=f"{res['best_score']:.4f}",
+                            delta=f"Total: {res['num_chunks']} Chunks",
+                            delta_color="off"
+                        )
+                        st.markdown("**Best Matching Chunk:**")
+                        st.info(f"\"{res['best_chunk']}\"")
+
