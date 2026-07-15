@@ -227,7 +227,7 @@ class CustomVectorStore:
         self.embeddings = None
 
 
-def query_groq_llm(query, retrieved_chunks, api_key, model_name="llama3-8b-8192"):
+def query_groq_llm(query, retrieved_chunks, api_key, model_name="llama-3.1-8b-instant"):
     """
     Constructs a RAG prompt and queries the Groq API for a grounded response.
     """
@@ -275,7 +275,7 @@ def query_groq_llm(query, retrieved_chunks, api_key, model_name="llama3-8b-8192"
         return f"❌ **Groq API Error**: {str(e)}\n\nPlease check your Groq API Key and internet connection."
 
 
-def rewrite_query_with_history(query, chat_history, api_key, model_name="llama3-8b-8192"):
+def rewrite_query_with_history(query, chat_history, api_key, model_name="llama-3.1-8b-instant"):
     """
     Reformulates follow-up queries using conversation history to make them standalone for semantic search.
     """

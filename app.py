@@ -133,9 +133,9 @@ with st.sidebar:
     st.subheader("⚙️ LLM Configuration")
     model_choice = st.selectbox(
         "Choose Groq Model",
-        ["llama-3.3-70b-versatile", "llama3-8b-8192", "mixtral-8x7b-32768"],
+        ["llama-3.3-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768"],
         index=1,
-        help="llama3-8b is fast, while llama-3.3-70b is highly analytical."
+        help="llama-3.1-8b is fast, while llama-3.3-70b is highly analytical."
     )
 
     st.markdown("---")
