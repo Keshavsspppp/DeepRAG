@@ -23,57 +23,204 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for rich aesthetics (darker elements, modern borders, clean layout)
+# Custom CSS for rich aesthetics (glassmorphism, glowing accents, premium typography)
 st.markdown("""
 <style>
-    .main {
-        background-color: #0d0e15;
+    @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap');
+
+    /* Global Typography & Font override */
+    html, body, [data-testid="stAppViewContainer"] {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        color: #e2e8f0;
     }
+
+    /* Radial dark-mode background gradient styling */
     .stApp {
-        background: radial-gradient(circle at 50% 50%, #151829 0%, #0d0f17 100%);
+        background: radial-gradient(circle at 10% 20%, rgba(15, 10, 36, 1) 0%, rgba(20, 24, 61, 1) 50%, rgba(8, 10, 24, 1) 100%) !important;
     }
-    h1, h2, h3 {
-        font-family: 'Outfit', 'Inter', sans-serif;
-        font-weight: 700;
-        background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+
+    /* Headings font settings */
+    h1 {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 800 !important;
+        background: linear-gradient(135deg, #a5b4fc 0%, #818cf8 50%, #4f46e5 100%) !important;
+        -webkit-background-clip: text !important;
+        -webkit-text-fill-color: transparent !important;
+        letter-spacing: -0.5px;
+        margin-bottom: 2px !important;
     }
-    .sidebar .sidebar-content {
-        background-color: #0f111d;
+
+    h2, h3, h4, h5, h6 {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 600 !important;
+        color: #f8fafc !important;
     }
+
+    /* Glassmorphic Sidebar styling */
+    [data-testid="stSidebar"] {
+        background-color: rgba(13, 15, 27, 0.7) !important;
+        backdrop-filter: blur(16px) !important;
+        border-right: 1px solid rgba(255, 255, 255, 0.05) !important;
+    }
+
+    /* Premium gradient buttons */
+    div.stButton > button {
+        background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%) !important;
+        color: #ffffff !important;
+        border: none !important;
+        border-radius: 8px !important;
+        padding: 8px 18px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3) !important;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        width: 100% !important;
+    }
+
+    div.stButton > button:hover {
+        transform: translateY(-2px) !important;
+        box-shadow: 0 8px 25px rgba(79, 70, 229, 0.5) !important;
+        background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+        border-color: transparent !important;
+    }
+
+    div.stButton > button:active {
+        transform: translateY(1px) !important;
+    }
+
+    /* File Uploader glass card styling */
+    [data-testid="stFileUploader"] {
+        background: rgba(30, 41, 59, 0.3) !important;
+        border: 2px dashed rgba(99, 102, 241, 0.4) !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    [data-testid="stFileUploader"]:hover {
+        border-color: #6366f1 !important;
+        background: rgba(30, 41, 59, 0.5) !important;
+    }
+
+    /* Tab Layout and Styling */
+    [data-testid="stTabBar"] {
+        background-color: rgba(15, 23, 42, 0.3) !important;
+        border-radius: 10px !important;
+        padding: 5px !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        margin-bottom: 20px !important;
+    }
+
+    [data-testid="stTab"] {
+        background-color: transparent !important;
+        color: #94a3b8 !important;
+        border: none !important;
+        font-weight: 600 !important;
+        border-radius: 6px !important;
+        padding: 8px 16px !important;
+        transition: all 0.2s ease !important;
+    }
+
+    [data-testid="stTab"][aria-selected="true"] {
+        background: rgba(99, 102, 241, 0.15) !important;
+        color: #a5b4fc !important;
+        border-bottom: 2px solid #6366f1 !important;
+    }
+
+    /* Chat Messages Glass Containers */
+    [data-testid="stChatMessage"] {
+        background-color: rgba(22, 28, 45, 0.4) !important;
+        backdrop-filter: blur(10px) !important;
+        border-radius: 16px !important;
+        border: 1px solid rgba(255, 255, 255, 0.04) !important;
+        padding: 18px !important;
+        margin-bottom: 12px !important;
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.15) !important;
+    }
+
+    /* Custom left-accent highlight for assistant chats */
+    [data-testid="stChatMessage"]:has([data-testid="chatAvatarIcon-assistant"]) {
+        border-left: 3px solid #6366f1 !important;
+    }
+
+    /* Special user chat tint */
+    [data-testid="stChatMessage"][data-testid="stChatMessage-user"] {
+        background-color: rgba(79, 70, 229, 0.06) !important;
+        border: 1px solid rgba(79, 70, 229, 0.15) !important;
+    }
+
+    /* Card styling for chunks and diagnostic elements */
     .chunk-card {
-        background-color: #16192b;
-        padding: 18px;
+        background-color: rgba(22, 28, 45, 0.5);
+        backdrop-filter: blur(8px);
+        padding: 20px;
         border-radius: 12px;
-        border: 1px solid #232845;
+        border: 1px solid rgba(255, 255, 255, 0.05);
         margin-bottom: 12px;
-        transition: transform 0.2s, border-color 0.2s;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
     }
+
     .chunk-card:hover {
         transform: translateY(-2px);
-        border-color: #4f46e5;
+        border-color: rgba(99, 102, 241, 0.5);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
     }
+
+    /* Similarity and Source Badges */
     .badge-similarity {
         background: linear-gradient(135deg, #10b981 0%, #059669 100%);
         color: white;
-        padding: 3px 8px;
+        padding: 3px 10px;
         border-radius: 6px;
         font-size: 0.8em;
-        font-weight: 600;
+        font-weight: 700;
         display: inline-block;
         margin-bottom: 8px;
+        box-shadow: 0 2px 10px rgba(16, 185, 129, 0.2);
     }
+
     .badge-source {
-        background-color: #312e81;
+        background-color: rgba(79, 70, 229, 0.2);
         color: #c7d2fe;
-        padding: 3px 8px;
+        border: 1px solid rgba(79, 70, 229, 0.3);
+        padding: 3px 10px;
         border-radius: 6px;
         font-size: 0.8em;
-        font-weight: 600;
+        font-weight: 700;
         display: inline-block;
         margin-bottom: 8px;
         margin-right: 6px;
+    }
+
+    /* Custom accordions/expanders design */
+    [data-testid="stExpander"] {
+        background-color: rgba(30, 41, 59, 0.15) !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 12px !important;
+        margin-top: 10px !important;
+    }
+
+    /* Metric Widget overrides */
+    [data-testid="stMetricValue"] {
+        font-family: 'Outfit', sans-serif !important;
+        font-weight: 800 !important;
+        color: #f8fafc !important;
+    }
+
+    /* Custom sleek scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+        background: rgba(15, 23, 42, 0.1);
+    }
+    ::-webkit-scrollbar-thumb {
+        background: rgba(99, 102, 241, 0.35);
+        border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+        background: rgba(99, 102, 241, 0.55);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -170,11 +317,17 @@ with st.sidebar:
 
 
 # MAIN SCREEN HEADER
-st.title("🧠 DeepRAG Assistant")
-st.markdown(
-    "A custom-engineered RAG pipeline designed to demonstrate manual chunking, "
-    "local embeddings using `all-MiniLM-L6-v2`, and pure cosine similarity searching via NumPy. "
-)
+st.markdown("""
+<div style="display: flex; align-items: center; margin-bottom: 25px; gap: 15px; background: rgba(30, 41, 59, 0.2); padding: 20px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);">
+    <img src="https://img.icons8.com/color/96/brain--v1.png" width="60" style="filter: drop-shadow(0 0 15px rgba(99, 102, 241, 0.45));"/>
+    <div>
+        <h1 style="margin: 0; padding: 0; line-height: 1.1; font-family: 'Outfit', sans-serif; font-size: 2.2rem; font-weight: 800;">DeepRAG Enterprise</h1>
+        <p style="margin: 3px 0 0 0; color: #94a3b8; font-size: 1.05rem; font-weight: 400; font-family: 'Plus Jakarta Sans', sans-serif;">
+            Custom-Engineered Grounded QA Pipeline • Manual NumPy Similarity Search • Local Embeddings
+        </p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # Ingestion Section
 st.subheader("📂 Document Ingestion")
