@@ -9,7 +9,8 @@ from rag_engine import (
     CustomVectorStore,
     query_groq_llm,
     get_embedding_model,
-    rewrite_query_with_history
+    rewrite_query_with_history,
+    chunk_text
 )
 
 # Load environment variables from .env file
